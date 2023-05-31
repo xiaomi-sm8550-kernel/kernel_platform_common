@@ -566,9 +566,9 @@ struct sched_entity {
 #endif
 
 	s64				vlag;
-	ANDROID_KABI_RESERVE(2);
-	ANDROID_KABI_RESERVE(3);
-	ANDROID_KABI_RESERVE(4);
+	u64				deadline;
+	u64				min_deadline;
+	u64				slice;
 };
 
 struct sched_rt_entity {
