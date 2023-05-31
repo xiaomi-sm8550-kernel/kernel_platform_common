@@ -1822,7 +1822,6 @@
   synchronize_rcu
   syscon_regmap_lookup_by_phandle
   sysctl_sched_features
-  sysctl_sched_latency
   sysfs_add_file_to_group
   sysfs_create_file_ns
   sysfs_create_files

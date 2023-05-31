@@ -1947,7 +1947,6 @@
   sync_mapping_buffers
   syscon_node_to_regmap
   syscon_regmap_lookup_by_phandle
-  sysctl_sched_latency
   sysfs_create_bin_file
   sysfs_create_file_ns
   sysfs_create_files
