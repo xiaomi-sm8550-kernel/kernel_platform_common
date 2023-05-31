@@ -565,7 +565,7 @@ struct sched_entity {
 	struct sched_avg		avg;
 #endif
 
-	ANDROID_KABI_RESERVE(1);
+	s64				vlag;
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
