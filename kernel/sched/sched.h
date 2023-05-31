@@ -631,6 +631,9 @@ struct cfs_rq {
 	struct list_head	throttled_list;
 #endif /* CONFIG_CFS_BANDWIDTH */
 #endif /* CONFIG_FAIR_GROUP_SCHED */
+
+	s64			avg_vruntime;
+	u64			avg_load;
 };
 
 static inline int rt_bandwidth_enabled(void)
@@ -3226,3 +3229,5 @@ static inline bool task_may_not_preempt(struct task_struct *task, int cpu)
 	return false;
 }
 #endif /* CONFIG_RT_SOFTINT_OPTIMIZATION */
+
+extern u64 avg_vruntime(struct cfs_rq *cfs_rq);
