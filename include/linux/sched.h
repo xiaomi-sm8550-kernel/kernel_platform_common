@@ -567,7 +567,7 @@ struct sched_entity {
 
 	s64				vlag;
 	u64				deadline;
-	u64				min_deadline;
+	u64				min_vruntime;
 	u64				slice;
 };
 
