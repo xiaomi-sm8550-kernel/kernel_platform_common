@@ -20,7 +20,8 @@
  *	page->freelist(index): links together all component pages of a zspage
  *		For the huge page, this is always 0, so we use this field
  *		to store handle.
- *	page->units: first object offset in a subpage of zspage
+ *	page->page_type: PG_zsmalloc, lower 16 bit locate the first object
+ *		offset in a subpage of a zspage
  *
  * Usage of struct page flags:
  *	PG_private: identifies the first component page
@@ -527,14 +528,16 @@ static inline struct page *get_first_page(struct zspage *zspage)
 	return first_page;
 }
 
+#define FIRST_OBJ_PAGE_TYPE_MASK	0xffff
+
 static inline unsigned int get_first_obj_offset(struct page *page)
 {
-	return page->units;
+	return page->page_type;
 }
 
 static inline void set_first_obj_offset(struct page *page, unsigned int offset)
 {
-	page->units = offset;
+	page->page_type = offset;
 }
 
 static inline unsigned int get_freeobj(struct zspage *zspage)
@@ -1134,7 +1137,6 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
 			cache_free_zspage(pool, zspage);
 			return NULL;
 		}
-
 		inc_zone_page_state(page, NR_ZSPAGES);
 		pages[i] = page;
 	}
