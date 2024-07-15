@@ -1,2 +1,9 @@
 DEFCONFIG=gki_defconfig
-POST_DEFCONFIG_CMDS="check_defconfig"
+POST_DEFCONFIG_CMDS="check_defconfig && update_defconfig"
+function update_defconfig() {
+    ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
+         -d CC_OPTIMIZE_FOR_PERFORMANCE \
+         -e CC_OPTIMIZE_FOR_PERFORMANCE_O3
+    (cd ${OUT_DIR} && \
+     make O=${OUT_DIR} $archsubarch CC=${CC} CROSS_COMPILE=${CROSS_COMPILE} olddefconfig)
+}
