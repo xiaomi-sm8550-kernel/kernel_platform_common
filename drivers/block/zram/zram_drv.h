@@ -114,6 +114,8 @@ struct zram {
 	struct gendisk *disk;
 	/* Prevent concurrent execution of device init */
 	struct rw_semaphore init_lock;
+	/* Prevent concurrent execution of device init */
+	atomic_t pp_in_progress;
 	/*
 	 * the number of pages zram can consume for storing compressed data
 	 */
