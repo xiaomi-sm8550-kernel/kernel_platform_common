@@ -4,6 +4,7 @@ function update_defconfig() {
     ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
          -d CC_OPTIMIZE_FOR_PERFORMANCE \
          -e CC_OPTIMIZE_FOR_PERFORMANCE_O3 \
+         -e LLVM_POLLY \
          -e WQ_POWER_EFFICIENT_DEFAULT \
          -d DEBUG_STACK_USAGE \
          -d DEBUG_MEMORY_INIT \
