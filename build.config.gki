@@ -9,7 +9,8 @@ function update_defconfig() {
          -d DEBUG_MEMORY_INIT \
          -d PAGE_EXTENSION \
          -d WQ_WATCHDOG \
-         -d F2FS_IOSTAT
+         -d F2FS_IOSTAT \
+         -e LRU_GEN_ENABLED
     (cd ${OUT_DIR} && \
      make O=${OUT_DIR} $archsubarch CC=${CC} CROSS_COMPILE=${CROSS_COMPILE} olddefconfig)
 }
