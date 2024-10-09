@@ -4,7 +4,12 @@ function update_defconfig() {
     ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
          -d CC_OPTIMIZE_FOR_PERFORMANCE \
          -e CC_OPTIMIZE_FOR_PERFORMANCE_O3 \
-         -e WQ_POWER_EFFICIENT_DEFAULT
+         -e WQ_POWER_EFFICIENT_DEFAULT \
+         -d DEBUG_STACK_USAGE \
+         -d DEBUG_MEMORY_INIT \
+         -d PAGE_EXTENSION \
+         -d WQ_WATCHDOG \
+         -d F2FS_IOSTAT
     (cd ${OUT_DIR} && \
      make O=${OUT_DIR} $archsubarch CC=${CC} CROSS_COMPILE=${CROSS_COMPILE} olddefconfig)
 }
