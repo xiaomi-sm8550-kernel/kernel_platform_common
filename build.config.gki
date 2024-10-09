@@ -10,7 +10,8 @@ function update_defconfig() {
          -d PAGE_EXTENSION \
          -d WQ_WATCHDOG \
          -d F2FS_IOSTAT \
-         -e LRU_GEN_ENABLED
+         -e LRU_GEN_ENABLED \
+         -d RCU_LAZY_DEFAULT_OFF
     (cd ${OUT_DIR} && \
      make O=${OUT_DIR} $archsubarch CC=${CC} CROSS_COMPILE=${CROSS_COMPILE} olddefconfig)
 }
