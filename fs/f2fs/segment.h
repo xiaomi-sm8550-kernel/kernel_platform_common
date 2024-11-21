@@ -657,30 +657,17 @@ static inline bool has_not_enough_free_secs(struct f2fs_sb_info *sbi,
 	if (unlikely(is_sbi_flag_set(sbi, SBI_POR_DOING)))
 		return false;
 
-	free = free_sections(sbi) + freed;
-	need_lower = node_secs + dent_secs + reserved_sections(sbi) + needed;
-	need_upper = need_lower + (node_blocks ? 1 : 0) + (dent_blocks ? 1 : 0);
+	__get_secs_required(sbi, &lower_secs, &upper_secs, &curseg_space);
 
-	if (free > need_upper)
+	free_secs = free_sections(sbi) + freed;
+	lower_secs += needed + reserved_sections(sbi);
+	upper_secs += needed + reserved_sections(sbi);
+
+	if (free_secs > upper_secs)
 		return false;
-	else if (free <= need_lower)
+	if (free_secs <= lower_secs)
 		return true;
-	return !has_curseg_enough_space(sbi, node_blocks, dent_blocks);
-}
-
-static inline bool has_enough_free_blks(struct f2fs_sb_info *sbi)
-{
-	unsigned int total_free_blocks = 0;
-	unsigned int avail_user_block_count;
-
-	spin_lock(&sbi->stat_lock);
-
-	avail_user_block_count = get_available_block_count(sbi, NULL, true);
-	total_free_blocks = avail_user_block_count - (unsigned int)valid_user_blocks(sbi);
-
-	spin_unlock(&sbi->stat_lock);
-
-	return total_free_blocks > 0;
+	return !curseg_space;
 }
 
 static inline bool has_enough_free_blks(struct f2fs_sb_info *sbi)
@@ -703,9 +690,6 @@ static inline bool f2fs_is_checkpoint_ready(struct f2fs_sb_info *sbi)
 	if (likely(!is_sbi_flag_set(sbi, SBI_CP_DISABLED)))
 		return true;
 	if (likely(!has_not_enough_free_secs(sbi, 0, 0)))
-		return true;
-	if (!f2fs_lfs_mode(sbi) &&
-		likely(has_enough_free_blks(sbi)))
 		return true;
 	if (!f2fs_lfs_mode(sbi) &&
 		likely(has_enough_free_blks(sbi)))
