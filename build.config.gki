@@ -14,7 +14,15 @@ function update_defconfig() {
          -d F2FS_IOSTAT \
          -e LRU_GEN_ENABLED \
          -d RCU_LAZY_DEFAULT_OFF \
-         -d ZRAM_WRITEBACK
+         -d ZRAM_WRITEBACK \
+         -d KFENCE \
+         -d UNMAP_KERNEL_AT_EL0 \
+         -d ARM64_PTR_AUTH \
+         -d MITIGATE_SPECTRE_BRANCH_HISTORY \
+         -d CFI_CLANG \
+         -d SHADOW_CALL_STACK \
+         -d ARM64_SW_TTBR0_PAN \
+         -d STACKPROTECTOR
     (cd ${OUT_DIR} && \
      make O=${OUT_DIR} $archsubarch CC=${CC} CROSS_COMPILE=${CROSS_COMPILE} olddefconfig)
 }

@@ -102,7 +102,6 @@
   cec_transmit_attempt_done_ts
   cec_transmit_done_ts
   cec_unregister_adapter
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -1527,7 +1526,6 @@
   split_page
   sprintf
   sscanf
-  __stack_chk_fail
   static_key_slow_dec
   static_key_slow_inc
   store_sampling_rate
@@ -1656,7 +1654,6 @@
   uart_get_baud_rate
   uart_get_divisor
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   unload_nls
   unlock_buffer

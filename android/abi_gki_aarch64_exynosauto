@@ -123,7 +123,6 @@
   cec_transmit_attempt_done_ts
   cec_transmit_done_ts
   cec_unregister_adapter
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -1736,7 +1735,6 @@
   sprintf
   sprint_symbol
   sscanf
-  __stack_chk_fail
   start_backtrace
   static_key_slow_dec
   static_key_slow_inc
@@ -1938,7 +1936,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   ufshcd_config_pwr_mode
   ufshcd_dme_get_attr

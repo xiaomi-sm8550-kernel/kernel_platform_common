@@ -374,7 +374,6 @@
   sort
   sprintf
   sscanf
-  __stack_chk_fail
   stack_depot_fetch
   stack_depot_save
   stack_trace_save
@@ -708,7 +707,6 @@
   __tracepoint_android_vh_binder_free_buf
   __tracepoint_android_vh_binder_buffer_release
   try_to_free_mem_cgroup_pages
-  __ubsan_handle_cfi_check_fail_abort
   unlock_page
   unlock_rename
   unregister_blkdev

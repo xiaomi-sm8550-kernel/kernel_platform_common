@@ -72,7 +72,6 @@
   cdev_device_add
   cdev_device_del
   cdev_init
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_create_file_ns
@@ -851,7 +850,6 @@
   sort
   sprintf
   sscanf
-  __stack_chk_fail
   stpcpy
   strcasecmp
   strcat
@@ -946,7 +944,6 @@
   uart_try_toggle_sysrq
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   unlock_page
   unpin_user_pages

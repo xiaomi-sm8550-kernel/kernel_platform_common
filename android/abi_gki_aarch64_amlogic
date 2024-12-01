@@ -116,7 +116,6 @@
   cdev_init
   cec_notifier_set_phys_addr
   cec_notifier_set_phys_addr_from_edid
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_create_file_ns
@@ -1915,7 +1914,6 @@
   sprintf
   sprint_symbol
   sscanf
-  __stack_chk_fail
   stack_trace_print
   stack_trace_save
   static_key_disable
@@ -2150,7 +2148,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   __uio_register_device
   uio_unregister_device
