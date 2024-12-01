@@ -45,7 +45,6 @@
   cec_register_adapter
   cec_transmit_attempt_done_ts
   cec_unregister_adapter
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -939,7 +938,6 @@
   __spi_register_driver
   sprintf
   sscanf
-  __stack_chk_fail
   strcasecmp
   strchr
   strcmp
@@ -1013,7 +1011,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   __unregister_chrdev
   unregister_chrdev_region

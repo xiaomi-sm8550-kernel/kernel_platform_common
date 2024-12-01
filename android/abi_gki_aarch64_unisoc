@@ -80,7 +80,6 @@
   cdev_device_add
   cdev_device_del
   cdev_init
-  __cfi_slowpath_diag
   __check_object_size
   check_preempt_curr
   __class_create
@@ -990,7 +989,6 @@
   spi_setup
   sprintf
   sscanf
-  __stack_chk_fail
   stack_trace_save_tsk
   static_key_disable
   stop_machine
@@ -1286,7 +1284,6 @@
   tty_unregister_device
   tty_unregister_driver
   tty_vhangup
-  __ubsan_handle_cfi_check_fail_abort
   uclamp_eff_value
   __udelay
   unlock_new_inode

@@ -17,7 +17,6 @@
   blk_queue_physical_block_size
   bpf_trace_run1
   cancel_work_sync
-  __cfi_slowpath_diag
   __check_object_size
   __ClearPageMovable
   complete
@@ -177,7 +176,6 @@
   sg_next
   snprintf
   sprintf
-  __stack_chk_fail
   strcmp
   strcpy
   strlcpy
@@ -199,7 +197,6 @@
   trace_handle_return
   tracepoint_probe_register
   trace_raw_output_prep
-  __ubsan_handle_cfi_check_fail_abort
   unlock_page
   unregister_blkdev
   unregister_netdev
