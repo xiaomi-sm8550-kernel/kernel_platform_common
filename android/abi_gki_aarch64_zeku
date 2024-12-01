@@ -30,7 +30,6 @@
   cdev_add
   cdev_del
   cdev_init
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -405,7 +404,6 @@
   spi_sync
   sprintf
   sscanf
-  __stack_chk_fail
   stack_trace_save
   strchr
   strcmp
@@ -432,7 +430,6 @@
   thermal_zone_device_update
   tracepoint_probe_register
   tracepoint_probe_unregister
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   unregister_blkdev
   unregister_chrdev_region

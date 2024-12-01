@@ -31,7 +31,6 @@ buffer_migrate_page
 __cancel_dirty_page
 capable
 capable_wrt_inode_uidgid
-__cfi_slowpath_diag
 __check_object_size
 clean_bdev_aliases
 __cleancache_invalidate_inode
@@ -231,7 +230,6 @@ simple_strtoull
 snprintf
 sprintf
 sscanf
-__stack_chk_fail
 strchr
 strcmp
 strlen
@@ -261,7 +259,6 @@ truncate_setsize
 try_to_free_buffers
 try_to_release_page
 try_to_writeback_inodes_sb
-__ubsan_handle_cfi_check_fail_abort
 unload_nls
 unlock_buffer
 unlock_new_inode

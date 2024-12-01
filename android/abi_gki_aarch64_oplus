@@ -376,7 +376,6 @@
   sort
   sprintf
   sscanf
-  __stack_chk_fail
   stack_depot_fetch
   stack_depot_save
   stack_trace_save
@@ -750,7 +749,6 @@
   css_task_iter_next
   css_task_iter_start
   try_to_free_mem_cgroup_pages
-  __ubsan_handle_cfi_check_fail_abort
   unlock_page
   unlock_rename
   unregister_blkdev

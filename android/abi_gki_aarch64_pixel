@@ -110,7 +110,6 @@
   cdev_device_add
   cdev_device_del
   cdev_init
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -1781,7 +1780,6 @@
   srcu_notifier_chain_register
   srcu_notifier_chain_unregister
   sscanf
-  __stack_chk_fail
   static_key_disable
   static_key_slow_dec
   static_key_slow_inc
@@ -2040,7 +2038,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   uclamp_eff_value
   __udelay
   udp4_hwcsum
