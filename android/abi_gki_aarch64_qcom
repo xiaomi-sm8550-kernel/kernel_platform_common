@@ -182,7 +182,6 @@
   cdev_device_add
   cdev_device_del
   cdev_init
-  __cfi_slowpath_diag
   cgroup_path_ns
   cgroup_taskset_first
   cgroup_taskset_next
@@ -2143,7 +2142,6 @@
   srcutorture_get_gp_data
   srcu_torture_stats_print
   sscanf
-  __stack_chk_fail
   stack_depot_fetch
   stack_depot_save
   stack_trace_print
@@ -2543,7 +2541,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   uclamp_eff_value
   ucsi_connector_change
   ucsi_create

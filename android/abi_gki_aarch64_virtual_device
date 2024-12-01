@@ -34,7 +34,6 @@
   cancel_delayed_work
   cancel_delayed_work_sync
   cancel_work_sync
-  __cfi_slowpath_diag
   __check_object_size
   __class_create
   class_destroy
@@ -469,7 +468,6 @@
   softnet_data
   sprintf
   sscanf
-  __stack_chk_fail
   strcasecmp
   strchr
   strcmp
@@ -502,7 +500,6 @@
   trace_event_reg
   trace_handle_return
   trace_raw_output_prep
-  __ubsan_handle_cfi_check_fail_abort
   __udelay
   unlock_page
   unregister_blkdev

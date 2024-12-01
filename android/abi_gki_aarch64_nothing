@@ -14,8 +14,6 @@
   preempt_schedule
   _printk
   __put_task_struct
-  __stack_chk_fail
-  __ubsan_handle_cfi_check_fail_abort
 
 # required by thermal_core_skip_irq.ko
   __traceiter_android_vh_thermal_pm_notify_suspend

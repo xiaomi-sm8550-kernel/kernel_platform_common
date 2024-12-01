@@ -88,7 +88,6 @@
   cdev_alloc
   cdev_del
   cdev_init
-  __cfi_slowpath_diag
   cgroup_taskset_first
   cgroup_taskset_next
   __check_object_size
@@ -1264,7 +1263,6 @@
   srcu_notifier_chain_register
   srcu_notifier_chain_unregister
   sscanf
-  __stack_chk_fail
   stack_trace_save_tsk
   start_backtrace
   static_key_disable
@@ -1512,7 +1510,6 @@
   uart_unregister_driver
   uart_update_timeout
   uart_write_wakeup
-  __ubsan_handle_cfi_check_fail_abort
   uclamp_eff_value
   __udelay
   unlock_page
