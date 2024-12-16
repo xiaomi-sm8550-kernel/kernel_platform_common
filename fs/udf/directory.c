@@ -19,7 +19,6 @@
 #include <linux/bio.h>
 #include <linux/crc-itu-t.h>
 #include <linux/iversion.h>
-#include <linux/slab.h>
 
 static int udf_verify_fi(struct udf_fileident_iter *iter)
 {
@@ -249,14 +248,9 @@ int udf_fiiter_init(struct udf_fileident_iter *iter, struct inode *dir,
 	iter->elen = 0;
 	iter->epos.bh = NULL;
 	iter->name = NULL;
-	iter->namebuf = kmalloc(UDF_NAME_LEN_CS0, GFP_KERNEL);
-	if (!iter->namebuf)
-		return -ENOMEM;
 
-	if (iinfo->i_alloc_type == ICBTAG_FLAG_AD_IN_ICB) {
-		err = udf_copy_fi(iter);
-		goto out;
-	}
+	if (iinfo->i_alloc_type == ICBTAG_FLAG_AD_IN_ICB)
+		return udf_copy_fi(iter);
 
 	if (inode_bmap(dir, iter->pos >> dir->i_blkbits, &iter->epos,
 		       &iter->eloc, &iter->elen, &iter->loffset) !=
@@ -266,17 +260,17 @@ int udf_fiiter_init(struct udf_fileident_iter *iter, struct inode *dir,
 		udf_err(dir->i_sb,
 			"position %llu not allocated in directory (ino %lu)\n",
 			(unsigned long long)pos, dir->i_ino);
-		err = -EFSCORRUPTED;
-		goto out;
+		return -EFSCORRUPTED;
 	}
 	err = udf_fiiter_load_bhs(iter);
 	if (err < 0)
-		goto out;
+		return err;
 	err = udf_copy_fi(iter);
-out:
-	if (err < 0)
+	if (err < 0) {
 		udf_fiiter_release(iter);
-	return err;
+		return err;
+	}
+	return 0;
 }
 
 int udf_fiiter_advance(struct udf_fileident_iter *iter)
@@ -313,8 +307,6 @@ void udf_fiiter_release(struct udf_fileident_iter *iter)
 	brelse(iter->bh[0]);
 	brelse(iter->bh[1]);
 	iter->bh[0] = iter->bh[1] = NULL;
-	kfree(iter->namebuf);
-	iter->namebuf = NULL;
 }
 
 static void udf_copy_to_bufs(void *buf1, int len1, void *buf2, int len2,
