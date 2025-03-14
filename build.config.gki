@@ -6,6 +6,7 @@ function update_defconfig() {
          -e CC_OPTIMIZE_FOR_PERFORMANCE_O3 \
          -e LLVM_POLLY \
          -e WQ_POWER_EFFICIENT_DEFAULT \
+         -e ZRAM_DEF_COMP_LZ4 \
          -d DEBUG_STACK_USAGE \
          -d DEBUG_MEMORY_INIT \
          -d PAGE_EXTENSION \
