@@ -683,6 +683,8 @@ __vma_link(struct mm_struct *mm, struct vm_area_struct *vma,
 	struct vm_area_struct *prev, struct rb_node **rb_link,
 	struct rb_node *rb_parent)
 {
+	vma_start_write(vma);
+	vma_mark_detached(vma, false);
 	__vma_link_list(mm, vma, prev);
 	__vma_link_rb(mm, vma, rb_link, rb_parent);
 }
@@ -728,6 +730,8 @@ static __always_inline void __vma_unlink(struct mm_struct *mm,
 						struct vm_area_struct *vma,
 						struct vm_area_struct *ignore)
 {
+	vma_start_write(vma);
+	vma_mark_detached(vma, true);
 	vma_rb_erase_ignore(vma, &mm->mm_rb, ignore);
 	__vma_unlink_list(mm, vma);
 	/* Kill the cache */
@@ -754,6 +758,15 @@ int __vma_adjust(struct vm_area_struct *vma, unsigned long start,
 	bool start_changed = false, end_changed = false;
 	long adjust_next = 0;
 	int remove_next = 0;
+
+	vma_start_write(vma);
+	if (next) {
+		vma_start_write(next);
+		if (next->vm_next)
+			vma_start_write(next->vm_next);
+	}
+	if (insert)
+		vma_start_write(insert);
 
 	if (next && !insert) {
 		struct vm_area_struct *exporter = NULL, *importer = NULL;
@@ -2707,6 +2720,8 @@ detach_vmas_to_be_unmapped(struct mm_struct *mm, struct vm_area_struct *vma,
 	insertion_point = (prev ? &prev->vm_next : &mm->mmap);
 	vma->vm_prev = NULL;
 	do {
+		vma_start_write(vma);
+		vma_mark_detached(vma, true);
 		vma_rb_erase(vma, &mm->mm_rb);
 		mm->map_count--;
 		tail_vma = vma;
@@ -2745,6 +2760,7 @@ int __split_vma(struct mm_struct *mm, struct vm_area_struct *vma,
 	struct vm_area_struct *new;
 	int err;
 
+	vma_start_write(vma);
 	if (vma->vm_ops && vma->vm_ops->may_split) {
 		err = vma->vm_ops->may_split(vma, addr);
 		if (err)
@@ -3236,6 +3252,10 @@ void exit_mmap(struct mm_struct *mm)
 	if (mm->locked_vm)
 		unlock_range(mm->mmap, ULONG_MAX);
 
+	for (vma = mm->mmap; vma; vma = vma->vm_next) {
+		vma_start_write(vma);
+		vma_mark_detached(vma, true);
+	}
 	arch_exit_mmap(mm);
 
 	vma = mm->mmap;
@@ -3324,6 +3344,8 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
 	 * If anonymous vma has not yet been faulted, update new pgoff
 	 * to match new location, to increase its chance of merging.
 	 */
+	vma_start_write(vma);
+
 	if (unlikely(vma_is_anonymous(vma) && !vma->anon_vma)) {
 		pgoff = addr >> PAGE_SHIFT;
 		faulted_in_anon_vma = false;
@@ -3671,6 +3693,10 @@ int mm_take_all_locks(struct mm_struct *mm)
 	struct anon_vma_chain *avc;
 
 	BUG_ON(mmap_read_trylock(mm));
+
+	/* Drain faults before taking mapping and notifier locks. */
+	for (vma = mm->mmap; vma; vma = vma->vm_next)
+		vma_start_write(vma);
 
 	mutex_lock(&mm_all_locks_mutex);
 
