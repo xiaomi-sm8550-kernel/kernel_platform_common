@@ -43,6 +43,9 @@ static DEFINE_MUTEX(zram_index_mutex);
 
 static int zram_major;
 static const char *default_compressor = CONFIG_ZRAM_DEF_COMP;
+#ifdef CONFIG_ZRAM_MULTI_COMP
+static const char *default_secondary_compressor = CONFIG_ZRAM_DEF_SECONDARY_COMP;
+#endif
 
 /* Module params (documentation at end) */
 static unsigned int num_devices = 1;
@@ -1010,7 +1013,11 @@ static ssize_t max_comp_streams_store(struct device *dev,
 static void comp_algorithm_set(struct zram *zram, u32 prio, const char *alg)
 {
 	/* Do not free statically defined compression algorithms */
-	if (zram->comp_algs[prio] != default_compressor)
+	if (zram->comp_algs[prio] != default_compressor
+#ifdef CONFIG_ZRAM_MULTI_COMP
+	    && zram->comp_algs[prio] != default_secondary_compressor
+#endif
+	)
 		kfree(zram->comp_algs[prio]);
 
 	zram->comp_algs[prio] = alg;
@@ -2109,6 +2116,10 @@ static void zram_reset_device(struct zram *zram)
 	reset_bdev(zram);
 
 	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
+#ifdef CONFIG_ZRAM_MULTI_COMP
+	/* Restore the default secondary algorithm after a device reset. */
+	comp_algorithm_set(zram, ZRAM_SECONDARY_COMP, default_secondary_compressor);
+#endif
 	up_write(&zram->init_lock);
 }
 
@@ -2367,6 +2378,14 @@ static int zram_add(void)
 	device_add_disk(NULL, zram->disk, zram_disk_attr_groups);
 
 	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
+#ifdef CONFIG_ZRAM_MULTI_COMP
+	/*
+	 * Set up the secondary (recompression) algorithm by default so that
+	 * recompression works without userspace having to configure
+	 * recomp_algorithm before the device is initialized.
+	 */
+	comp_algorithm_set(zram, ZRAM_SECONDARY_COMP, default_secondary_compressor);
+#endif
 
 	zram_debugfs_register(zram);
 	pr_info("Added device: %s\n", zram->disk->disk_name);
