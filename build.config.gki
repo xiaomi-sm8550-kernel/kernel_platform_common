@@ -12,6 +12,8 @@ function update_defconfig() {
          -d WQ_WATCHDOG \
          -d F2FS_IOSTAT \
          -e LRU_GEN_ENABLED \
+         -e ZRAM_MULTI_COMP \
+         -e ZRAM_MEMORY_TRACKING \
          -d RCU_LAZY_DEFAULT_OFF \
          -d ZRAM_WRITEBACK \
          -d KFENCE \
