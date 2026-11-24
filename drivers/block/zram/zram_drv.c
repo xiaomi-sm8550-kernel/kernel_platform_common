@@ -2399,17 +2399,23 @@ static int zram_add(void)
 		blk_queue_max_write_zeroes_sectors(zram->disk->queue, UINT_MAX);
 
 	blk_queue_flag_set(QUEUE_FLAG_STABLE_WRITES, zram->disk->queue);
-	device_add_disk(NULL, zram->disk, zram_disk_attr_groups);
-
 	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
 #ifdef CONFIG_ZRAM_MULTI_COMP
 	/*
 	 * Set up the secondary (recompression) algorithm by default so that
 	 * recompression works without userspace having to configure
 	 * recomp_algorithm before the device is initialized.
+	 *
+	 * Set these up before device_add_disk(): the device becomes
+	 * user-visible (and its sysfs attrs readable) once the disk is
+	 * added, so comp_algs must be configured by then.
 	 */
 	comp_algorithm_set(zram, ZRAM_SECONDARY_COMP, default_secondary_compressor);
 #endif
+
+	ret = device_add_disk(NULL, zram->disk, zram_disk_groups);
+	if (ret)
+		goto out_cleanup_disk;
 
 	zram_debugfs_register(zram);
 	pr_info("Added device: %s\n", zram->disk->disk_name);
