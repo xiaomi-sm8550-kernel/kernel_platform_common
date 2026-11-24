@@ -17,11 +17,10 @@
  *
  * Usage of struct page fields:
  *	page->private: points to zspage
- *	page->freelist(index): links together all component pages of a zspage
+ *	page->index: links together all component pages of a zspage
  *		For the huge page, this is always 0, so we use this field
  *		to store handle.
- *	page->page_type: PG_zsmalloc, lower 16 bit locate the first object
- *		offset in a subpage of a zspage
+ *	page->page_type: first object offset in a subpage of zspage
  *
  * Usage of struct page flags:
  *	PG_private: identifies the first component page
@@ -65,6 +64,9 @@
 #include <linux/wait.h>
 #include <linux/pagemap.h>
 #include <linux/fs.h>
+#include <linux/wait.h>
+#include <linux/pagemap.h>
+#include <linux/fs.h>
 #include <linux/local_lock.h>
 
 #define ZSPAGE_MAGIC	0x58
@@ -76,13 +78,6 @@
  * to restore link_free pointer values.
  */
 #define ZS_ALIGN		8
-
-/*
- * A single 'zspage' is composed of up to 2^N discontiguous 0-order (single)
- * pages. ZS_MAX_ZSPAGE_ORDER defines upper limit on N.
- */
-#define ZS_MAX_ZSPAGE_ORDER 2
-#define ZS_MAX_PAGES_PER_ZSPAGE (_AC(1, UL) << ZS_MAX_ZSPAGE_ORDER)
 
 #define ZS_HANDLE_SIZE (sizeof(unsigned long))
 
@@ -140,8 +135,10 @@
 #define HUGE_BITS	1
 #define FULLNESS_BITS	4
 #define CLASS_BITS	8
-#define ISOLATED_BITS	3
+#define ISOLATED_BITS	5
 #define MAGIC_VAL_BITS	8
+
+#define ZS_MAX_PAGES_PER_ZSPAGE	(_AC(CONFIG_ZSMALLOC_CHAIN_SIZE, UL))
 
 /* ZS_MIN_ALLOC_SIZE must be multiple of ZS_ALIGN */
 #define ZS_MIN_ALLOC_SIZE \
@@ -268,9 +265,13 @@ struct zs_pool {
 	struct dentry *stat_dentry;
 #endif
 #ifdef CONFIG_COMPACTION
-	struct inode *inode;
 	struct work_struct free_work;
 #endif
+	/*
+	 * 5.15: zsmalloc pages are movable via address_space_operations, so
+	 * every pool needs an inode whose mapping carries zsmalloc_aops.
+	 */
+	struct inode *inode;
 	spinlock_t lock;
 };
 
@@ -335,7 +336,6 @@ static void init_deferred_free(struct zs_pool *pool) {}
 static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage) {}
 #endif
 
-
 static int create_cache(struct zs_pool *pool)
 {
 	pool->handle_cachep = kmem_cache_create("zs_handle", ZS_HANDLE_SIZE,
@@ -363,7 +363,7 @@ static void destroy_cache(struct zs_pool *pool)
 static unsigned long cache_alloc_handle(struct zs_pool *pool, gfp_t gfp)
 {
 	return (unsigned long)kmem_cache_alloc(pool->handle_cachep,
-			gfp & ~(__GFP_HIGHMEM|__GFP_MOVABLE|__GFP_CMA));
+			gfp & ~(__GFP_HIGHMEM|__GFP_MOVABLE));
 }
 
 static void cache_free_handle(struct zs_pool *pool, unsigned long handle)
@@ -374,7 +374,7 @@ static void cache_free_handle(struct zs_pool *pool, unsigned long handle)
 static struct zspage *cache_alloc_zspage(struct zs_pool *pool, gfp_t flags)
 {
 	return kmem_cache_zalloc(pool->zspage_cachep,
-			flags & ~(__GFP_HIGHMEM|__GFP_MOVABLE|__GFP_CMA));
+			flags & ~(__GFP_HIGHMEM|__GFP_MOVABLE));
 }
 
 static void cache_free_zspage(struct zs_pool *pool, struct zspage *zspage)
@@ -527,8 +527,6 @@ static inline struct page *get_first_page(struct zspage *zspage)
 	VM_BUG_ON_PAGE(!is_first_page(first_page), first_page);
 	return first_page;
 }
-
-#define FIRST_OBJ_PAGE_TYPE_MASK	0xffff
 
 static inline unsigned int get_first_obj_offset(struct page *page)
 {
@@ -825,7 +823,7 @@ static struct page *get_next_page(struct page *page)
 	if (unlikely(ZsHugePage(zspage)))
 		return NULL;
 
-	return page->freelist;
+	return (struct page *)page->index;
 }
 
 /**
@@ -1082,7 +1080,7 @@ static void create_page_chain(struct size_class *class, struct zspage *zspage,
 
 	/*
 	 * Allocate individual pages and link them together as:
-	 * 1. all pages are linked together using page->freelist
+	 * 1. all pages are linked together using page->index
 	 * 2. each sub-page point to zspage using page->private
 	 *
 	 * we set PG_private to identify the first page (i.e. no other sub-page
@@ -1091,7 +1089,7 @@ static void create_page_chain(struct size_class *class, struct zspage *zspage,
 	for (i = 0; i < nr_pages; i++) {
 		page = pages[i];
 		set_page_private(page, (unsigned long)zspage);
-		page->freelist = NULL;
+		page->index = 0;
 		if (i == 0) {
 			zspage->first_page = page;
 			SetPagePrivate(page);
@@ -1099,7 +1097,7 @@ static void create_page_chain(struct size_class *class, struct zspage *zspage,
 					class->pages_per_zspage == 1))
 				SetZsHugePage(zspage);
 		} else {
-			prev_page->freelist = page;
+			prev_page->index = (unsigned long)page;
 		}
 		prev_page = page;
 	}
@@ -1119,9 +1117,6 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
 	if (!zspage)
 		return NULL;
 
-	if (!IS_ENABLED(CONFIG_COMPACTION))
-		gfp &= ~__GFP_MOVABLE;
-
 	zspage->magic = ZSPAGE_MAGIC;
 	migrate_lock_init(zspage);
 
@@ -1137,12 +1132,14 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
 			cache_free_zspage(pool, zspage);
 			return NULL;
 		}
+
 		inc_zone_page_state(page, NR_ZSPAGES);
 		pages[i] = page;
 	}
 
 	create_page_chain(class, zspage, pages);
 	init_zspage(class, zspage);
+	zspage->pool = pool;
 
 	return zspage;
 }
@@ -1273,6 +1270,27 @@ static bool zspage_full(struct size_class *class, struct zspage *zspage)
 {
 	return get_zspage_inuse(zspage) == class->objs_per_zspage;
 }
+
+/**
+ * zs_lookup_class_index() - Returns index of the zsmalloc &size_class
+ * that hold objects of the provided size.
+ * @pool: zsmalloc pool to use
+ * @size: object size
+ *
+ * Context: Any context.
+ *
+ * Return: the index of the zsmalloc &size_class that hold objects of the
+ * provided size.
+ */
+unsigned int zs_lookup_class_index(struct zs_pool *pool, unsigned int size)
+{
+	struct size_class *class;
+
+	class = pool->size_class[get_size_class_index(size)];
+
+	return class->index;
+}
+EXPORT_SYMBOL_GPL(zs_lookup_class_index);
 
 unsigned long zs_get_total_pages(struct zs_pool *pool)
 {
@@ -1915,35 +1933,6 @@ static void unlock_zspage(struct zspage *zspage)
 }
 #endif /* CONFIG_ZPOOL */
 
-static int zs_init_fs_context(struct fs_context *fc)
-{
-	return init_pseudo(fc, ZSMALLOC_MAGIC) ? 0 : -ENOMEM;
-}
-
-static struct file_system_type zsmalloc_fs = {
-	.name		= "zsmalloc",
-	.init_fs_context = zs_init_fs_context,
-	.kill_sb	= kill_anon_super,
-};
-
-static struct vfsmount *zsmalloc_mnt __read_mostly;
-
-static int zsmalloc_mount(void)
-{
-	int ret = 0;
-
-	zsmalloc_mnt = kern_mount(&zsmalloc_fs);
-	if (IS_ERR(zsmalloc_mnt))
-		ret = PTR_ERR(zsmalloc_mnt);
-
-	return ret;
-}
-
-static void zsmalloc_unmount(void)
-{
-	kern_unmount(zsmalloc_mnt);
-}
-
 static void migrate_lock_init(struct zspage *zspage)
 {
 	rwlock_init(&zspage->lock);
@@ -1967,8 +1956,6 @@ static void migrate_write_lock(struct zspage *zspage)
 
 static void migrate_write_lock_nested(struct zspage *zspage)
 {
-	/* 5.15 has no write_lock_nested(); plain write_lock() is equivalent
-	 * here because the zspage lock is not held at this point */
 	write_lock(&zspage->lock);
 }
 
@@ -1988,6 +1975,8 @@ static void dec_zspage_isolation(struct zspage *zspage)
 	VM_BUG_ON(zspage->isolated == 0);
 	zspage->isolated--;
 }
+
+static const struct address_space_operations zsmalloc_aops;
 
 static void replace_sub_page(struct size_class *class, struct zspage *zspage,
 				struct page *newpage, struct page *oldpage)
@@ -2020,7 +2009,6 @@ static bool zs_page_isolate(struct page *page, isolate_mode_t mode)
 	 * Page is locked so zspage couldn't be destroyed. For detail, look at
 	 * lock_zspage in free_zspage.
 	 */
-	VM_BUG_ON_PAGE(!PageMovable(page), page);
 	VM_BUG_ON_PAGE(PageIsolated(page), page);
 
 	zspage = get_zspage(page);
@@ -2052,17 +2040,17 @@ static int zs_page_migrate(struct address_space *mapping, struct page *newpage,
 	if (mode == MIGRATE_SYNC_NO_COPY)
 		return -EINVAL;
 
-	VM_BUG_ON_PAGE(!PageMovable(page), page);
 	VM_BUG_ON_PAGE(!PageIsolated(page), page);
 
-	pool = mapping->private_data;
+	/* The page is locked, so this pointer must remain valid */
+	zspage = get_zspage(page);
+	pool = zspage->pool;
 
 	/*
 	 * The pool's lock protects the race between zpage migration
 	 * and zs_free.
 	 */
 	spin_lock(&pool->lock);
-	zspage = get_zspage(page);
 	class = zspage_class(pool, zspage);
 
 	/* the migrate_write_lock protects zpage access via zs_map_object */
@@ -2075,7 +2063,7 @@ static int zs_page_migrate(struct address_space *mapping, struct page *newpage,
 	 * Here, any user cannot access all objects in the zspage so let's move.
 	 */
 	d_addr = kmap_atomic(newpage);
-	copy_page(d_addr, s_addr);
+	memcpy(d_addr, s_addr, PAGE_SIZE);
 	kunmap_atomic(d_addr);
 
 	for (addr = s_addr + offset; addr < s_addr + PAGE_SIZE;
@@ -2116,7 +2104,6 @@ static void zs_page_putback(struct page *page)
 {
 	struct zspage *zspage;
 
-	VM_BUG_ON_PAGE(!PageMovable(page), page);
 	VM_BUG_ON_PAGE(!PageIsolated(page), page);
 
 	zspage = get_zspage(page);
@@ -2130,25 +2117,6 @@ static const struct address_space_operations zsmalloc_aops = {
 	.migratepage = zs_page_migrate,
 	.putback_page = zs_page_putback,
 };
-
-static int zs_register_migration(struct zs_pool *pool)
-{
-	pool->inode = alloc_anon_inode(zsmalloc_mnt->mnt_sb);
-	if (IS_ERR(pool->inode)) {
-		pool->inode = NULL;
-		return 1;
-	}
-
-	pool->inode->i_mapping->private_data = pool;
-	pool->inode->i_mapping->a_ops = &zsmalloc_aops;
-	return 0;
-}
-
-static void zs_unregister_migration(struct zs_pool *pool)
-{
-	flush_work(&pool->free_work);
-	iput(pool->inode);
-}
 
 /*
  * Caller should hold page_lock of all pages in the zspage
@@ -2197,6 +2165,11 @@ static void kick_deferred_free(struct zs_pool *pool)
 	schedule_work(&pool->free_work);
 }
 
+static void zs_flush_migration(struct zs_pool *pool)
+{
+	flush_work(&pool->free_work);
+}
+
 static void init_deferred_free(struct zs_pool *pool)
 {
 	INIT_WORK(&pool->free_work, async_free_zspage);
@@ -2212,6 +2185,8 @@ static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage)
 		unlock_page(page);
 	} while ((page = get_next_page(page)) != NULL);
 }
+#else
+static inline void zs_flush_migration(struct zs_pool *pool) { }
 #endif
 
 /*
@@ -2399,6 +2374,39 @@ static int calculate_zspage_chain_size(int class_size)
 	return chain_size;
 }
 
+/*
+ * 5.15: movable pages need an address_space to migrate against; zsmalloc
+ * keeps a pseudo-fs mount and hands every pool an anon inode.
+ */
+static struct vfsmount *zsmalloc_mnt __read_mostly;
+
+static int zs_init_fs_context(struct fs_context *fc)
+{
+	return init_pseudo(fc, ZSMALLOC_MAGIC) ? 0 : -ENOMEM;
+}
+
+static struct file_system_type zsmalloc_fs = {
+	.name		= "zsmalloc",
+	.init_fs_context = zs_init_fs_context,
+	.kill_sb	= kill_anon_super,
+};
+
+static int zsmalloc_mount(void)
+{
+	int ret = 0;
+
+	zsmalloc_mnt = kern_mount(&zsmalloc_fs);
+	if (IS_ERR(zsmalloc_mnt))
+		ret = PTR_ERR(zsmalloc_mnt);
+
+	return ret;
+}
+
+static void zsmalloc_unmount(void)
+{
+	kern_unmount(zsmalloc_mnt);
+}
+
 /**
  * zs_create_pool - Creates an allocation pool to work from.
  * @name: pool name to be created
@@ -2505,8 +2513,17 @@ struct zs_pool *zs_create_pool(const char *name)
 	/* debug only, don't abort if it fails */
 	zs_pool_stat_create(pool, name);
 
-	if (zs_register_migration(pool))
-		goto err;
+	/*
+	 * 5.15: migration needs an anon inode whose mapping carries
+	 * zsmalloc_aops. Not critical: without it the pool just won't be
+	 * migrated by compaction.
+	 */
+	pool->inode = alloc_anon_inode(zsmalloc_mnt->mnt_sb);
+	if (IS_ERR(pool->inode)) {
+		pool->inode = NULL;
+	} else {
+		pool->inode->i_mapping->a_ops = &zsmalloc_aops;
+	}
 
 	/*
 	 * Not critical since shrinker is only used to trigger internal
@@ -2533,7 +2550,7 @@ void zs_destroy_pool(struct zs_pool *pool)
 	int i;
 
 	zs_unregister_shrinker(pool);
-	zs_unregister_migration(pool);
+	zs_flush_migration(pool);
 	zs_pool_stat_destroy(pool);
 
 	for (i = 0; i < ZS_SIZE_CLASSES; i++) {
@@ -2557,6 +2574,7 @@ void zs_destroy_pool(struct zs_pool *pool)
 	}
 
 	destroy_cache(pool);
+	iput(pool->inode);
 	kfree(pool->name);
 	kfree(pool);
 }

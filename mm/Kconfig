@@ -709,6 +709,18 @@ config ZSMALLOC_STAT
 	  information to userspace via debugfs.
 	  If unsure, say N.
 
+config ZSMALLOC_CHAIN_SIZE
+	int "Storage for the maximum number of sub-pages in a zspage"
+	depends on ZSMALLOC
+	range 4 16
+	default 8
+	help
+	  This option lets you define the storage for the maximum number
+	  of sub-pages that a zspage can consist of. Higher values allow
+	  larger zspages, which can reduce fragmentation at the cost of
+	  higher-order page allocations.
+	  If unsure, say 8.
+
 config GENERIC_EARLY_IOREMAP
 	bool
 
