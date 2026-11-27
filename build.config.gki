@@ -14,6 +14,7 @@ function update_defconfig() {
          -e LRU_GEN_ENABLED \
          -e ZRAM_MULTI_COMP \
          -e ZRAM_MEMORY_TRACKING \
+         -e PER_VMA_LOCK \
          -d RCU_LAZY_DEFAULT_OFF \
          -d ZRAM_WRITEBACK \
          -d KFENCE \
